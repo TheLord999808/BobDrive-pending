@@ -1,35 +1,54 @@
 {
-  "name": "my-file-manager",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@radix-ui/react-dropdown-menu": "^2.1.6",
-    "@radix-ui/react-scroll-area": "^1.2.3",
-    "@radix-ui/react-slot": "^1.1.2",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.487.0",
-    "next": "15.2.4",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "tailwind-merge": "^3.1.0",
-    "tw-animate-css": "^1.2.5"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.2.4",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "name": "my-file-manager",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+      "dev": "next dev --turbopack",
+      "build": "next build",
+      "start": "next start",
+      "lint": "next lint",
+      "server:dev": "ts-node-dev --respawn --transpile-only server/index.ts",
+      "server:build": "tsc -p tsconfig.server.json",
+      "server:start": "node dist/server/index.js",
+      "init-db": "ts-node server/scripts/initDb.ts",
+      "mysql-init": "mysql -u root -p < server/scripts/mysql-init.sql"
+    },
+    "dependencies": {
+      "@radix-ui/react-dropdown-menu": "^2.1.6",
+      "@radix-ui/react-scroll-area": "^1.2.3",
+      "@radix-ui/react-slot": "^1.1.2",
+      "class-variance-authority": "^0.7.1",
+      "clsx": "^2.1.1",
+      "cors": "^2.8.5",
+      "dotenv": "^16.4.5",
+      "express": "^4.19.2",
+      "lucide-react": "^0.487.0",
+      "multer": "^1.4.5-lts.1",
+      "mysql2": "^3.9.4",
+      "next": "15.2.4",
+      "react": "^19.0.0",
+      "react-dom": "^19.0.0",
+      "sequelize": "^6.37.1",
+      "tailwind-merge": "^3.1.0",
+      "tw-animate-css": "^1.2.5",
+      "uuid": "^9.0.1",
+      "zod": "^3.22.4"
+    },
+    "devDependencies": {
+      "@eslint/eslintrc": "^3",
+      "@tailwindcss/postcss": "^4",
+      "@types/cors": "^2.8.17",
+      "@types/express": "^4.17.21",
+      "@types/multer": "^1.4.11",
+      "@types/node": "^20",
+      "@types/react": "^19",
+      "@types/react-dom": "^19",
+      "@types/uuid": "^9.0.8",
+      "eslint": "^9",
+      "eslint-config-next": "15.2.4",
+      "tailwindcss": "^4",
+      "ts-node": "^10.9.2",
+      "ts-node-dev": "^2.0.0",
+      "typescript": "^5"
+    }
   }
-}
