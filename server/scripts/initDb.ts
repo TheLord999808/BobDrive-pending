@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { sequelize, User, Folder } from '../db/models';
+import { sequelize, User, Folder } from '../models';
 import { v4 as uuidv4 } from 'uuid';
 
 // Load environment variables

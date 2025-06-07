@@ -1,5 +1,5 @@
 import express from 'express';
-import { Folder, File } from '../db/models';
+import { Folder, File } from '../models';
 import sequelize from '../db/connection';
 
 // Create router

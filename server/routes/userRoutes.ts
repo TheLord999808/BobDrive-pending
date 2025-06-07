@@ -1,5 +1,5 @@
 import express from 'express';
-import { User } from '../db/models';
+import { User } from '../models';
 import { v4 as uuidv4 } from 'uuid';
 
 // Create router
