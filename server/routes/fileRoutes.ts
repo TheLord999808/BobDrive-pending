@@ -2,8 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { v4 as uuidv4 } from 'uuid';
-import { File, Folder, User } from '../models';
+import { File, Folder } from '../models';
 
 const router = express.Router();
 
@@ -42,9 +41,11 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ error: 'User ID is required' });
     }
 
-    const query: any = { ownerId: userId };
+    const query: { ownerId: string; parentFolderId?: string | null } = { ownerId: userId };
     if (parentFolderId) {
       query.parentFolderId = parentFolderId;
+    } else {
+      query.parentFolderId = null;
     }
 
     const files = await File.findAll({
@@ -69,7 +70,7 @@ router.post('/', upload.single('file'), async (req, res) => {
     }
 
     // Verify parent folder exists if specified
-    if (parentFolderId) {
+    if (parentFolderId && parentFolderId !== 'null') {
       const parentFolder = await Folder.findByPk(parentFolderId);
       if (!parentFolder) {
         return res.status(404).json({ error: 'Parent folder not found' });
@@ -81,9 +82,9 @@ router.post('/', upload.single('file'), async (req, res) => {
       originalName: req.file.originalname,
       mimeType: req.file.mimetype,
       size: req.file.size,
-      path: req.file.path,
+      filePath: req.file.path,
       ownerId: userId,
-      parentFolderId: parentFolderId || null,
+      parentFolderId: (parentFolderId && parentFolderId !== 'null') ? parentFolderId : null,
       isPublic: isPublic === 'true' || isPublic === true
     });
 
@@ -106,8 +107,12 @@ router.delete('/:id', async (req, res) => {
     }
     
     // Remove file from filesystem
-    if (fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
+    try {
+      if (fs.existsSync(file.filePath)) {
+        fs.unlinkSync(file.filePath);
+      }
+    } catch (fsError) {
+      console.warn('Warning: Could not delete file from filesystem:', fsError);
     }
     
     // Remove from database
@@ -133,7 +138,7 @@ router.patch('/:id', async (req, res) => {
     }
     
     // Verify parent folder exists if specified
-    if (parentFolderId) {
+    if (parentFolderId && parentFolderId !== 'null') {
       const parentFolder = await Folder.findByPk(parentFolderId);
       if (!parentFolder) {
         return res.status(404).json({ error: 'Parent folder not found' });
@@ -141,10 +146,12 @@ router.patch('/:id', async (req, res) => {
     }
     
     // Update only allowed fields
-    const updates: Record<string, any> = {};
+    const updates: Partial<{ originalName: string; isPublic: boolean; parentFolderId: string | null }> = {};
     if (originalName !== undefined) updates.originalName = originalName;
     if (isPublic !== undefined) updates.isPublic = isPublic;
-    if (parentFolderId !== undefined) updates.parentFolderId = parentFolderId || null;
+    if (parentFolderId !== undefined) {
+      updates.parentFolderId = (parentFolderId === 'null' || parentFolderId === null) ? null : parentFolderId;
+    }
     
     await file.update(updates);
     
