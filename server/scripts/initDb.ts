@@ -78,6 +78,7 @@ const initializeDatabase = async () => {
     await File.create({
       name: 'placeholder_notes.txt',
       originalName: 'Notes.txt',
+      type: 'text', // Ajout de la propriété type manquante
       mimetype: 'text/plain',
       size: Buffer.byteLength(notesContent, 'utf8'),
       path: notesPath,
@@ -89,6 +90,7 @@ const initializeDatabase = async () => {
     await File.create({
       name: 'placeholder_report.pdf',
       originalName: 'Report.pdf',
+      type: 'document', // Ajout de la propriété type manquante
       mimetype: 'application/pdf',
       size: Math.round(1.2 * 1024 * 1024), // 1.2 MB - converti en entier
       path: path.join(storageDir, 'placeholder_report.pdf'),
@@ -101,6 +103,7 @@ const initializeDatabase = async () => {
     await File.create({
       name: 'placeholder_proposal.docx',
       originalName: 'Project Proposal.docx',
+      type: 'document', // Ajout de la propriété type manquante
       mimetype: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       size: 245 * 1024, // 245 KB
       path: path.join(storageDir, 'placeholder_proposal.docx'),
@@ -112,6 +115,7 @@ const initializeDatabase = async () => {
     await File.create({
       name: 'placeholder_meeting_notes.txt',
       originalName: 'Meeting Notes.txt',
+      type: 'text', // Ajout de la propriété type manquante
       mimetype: 'text/plain',
       size: Buffer.byteLength(meetingNotesContent, 'utf8'),
       path: meetingNotesPath,
@@ -123,6 +127,7 @@ const initializeDatabase = async () => {
     await File.create({
       name: 'placeholder_budget.xlsx',
       originalName: 'Budget.xlsx',
+      type: 'spreadsheet', // Ajout de la propriété type manquante
       mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       size: 154 * 1024, // 154 KB
       path: path.join(storageDir, 'placeholder_budget.xlsx'),
