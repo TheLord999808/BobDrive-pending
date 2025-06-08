@@ -62,4 +62,15 @@ Folder.init(
   }
 );
 
+// Self-referencing association for parent-child relationship
+Folder.hasMany(Folder, {
+  as: 'children',
+  foreignKey: 'parentId',
+});
+
+Folder.belongsTo(Folder, {
+  as: 'parent',
+  foreignKey: 'parentId',
+});
+
 export default Folder;

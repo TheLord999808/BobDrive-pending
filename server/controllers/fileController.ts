@@ -103,10 +103,12 @@ export const createFolder = async (req: Request, res: Response): Promise<void> =
     }
 
     const folder = await Folder.create({
-      name,
-      parentId: parentId || null,
+        name,
+        parentId: parentId || null,
+        ownerId: ownerId, // À ajouter depuis req.body ou auth
+        isPublic: false,
     });
-
+      
     res.status(201).json(folder);
   } catch (error) {
     console.error('Error creating folder:', error);
@@ -131,13 +133,16 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
     
     // Store file info in database
     const fileRecord = await File.create({
-      name: originalname,
-      type: getFileType(mimetype),
-      mimetype,
-      size,
-      path: `/storage/${uniqueFileName}`,
-      folderId: folderId || null,
-    });
+        name: originalname,
+        originalName: originalname,
+        type: getFileType(mimetype),
+        mimetype,
+        size,
+        path: `/storage/${uniqueFileName}`,
+        folderId: folderId || null,
+        ownerId: ownerId, // À ajouter depuis req.body ou auth
+        isPublic: false,
+      });
 
     // Move the file to the storage directory with the unique name
     const oldPath = path.join(__dirname, '../../uploads', filename);
