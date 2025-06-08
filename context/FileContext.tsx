@@ -52,12 +52,13 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
-  const handleError = (err: any) => {
+  const handleError = useCallback((err: unknown) => {
     console.error('FileContext error:', err);
-    setError(err.message || 'An error occurred');
+    const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+    setError(errorMessage);
     setLoading(false);
-  };
-
+  }, []);
+    
   const loadFileSystem = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -71,7 +72,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [handleError]);
 
   const loadFolderContents = useCallback(async (folderId: string) => {
     setLoading(true);
@@ -86,7 +87,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [handleError]);
 
   const createFolder = useCallback(async (name: string, parentId?: string) => {
     setLoading(true);
@@ -99,7 +100,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [handleError]);
 
   const uploadFile = useCallback(async (file: File, folderId?: string) => {
     setLoading(true);
@@ -112,7 +113,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [handleError]);
 
   const deleteFile = useCallback(async (fileId: string) => {
     setLoading(true);
@@ -130,7 +131,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [handleError]);
 
   const deleteFolder = useCallback(async (folderId: string) => {
     setLoading(true);
@@ -148,7 +149,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [handleError]);
 
   const renameFile = useCallback(async (fileId: string, newName: string) => {
     setLoading(true);
@@ -163,7 +164,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [handleError]);
 
   const renameFolder = useCallback(async (folderId: string, newName: string) => {
     setLoading(true);
@@ -181,7 +182,16 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [currentFolder]);
+  }, [currentFolder, handleError]);
+
+  // Définition de refreshCurrentView avant son utilisation dans moveFile et moveFolder
+  const refreshCurrentView = useCallback(async () => {
+    if (currentFolder) {
+      await loadFolderContents(currentFolder.id);
+    } else {
+      await loadFileSystem();
+    }
+  }, [currentFolder, loadFolderContents, loadFileSystem]);
 
   const moveFile = useCallback(async (fileId: string, targetFolderId?: string) => {
     setLoading(true);
@@ -195,7 +205,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [handleError, refreshCurrentView]);
 
   const moveFolder = useCallback(async (folderId: string, targetFolderId?: string) => {
     setLoading(true);
@@ -209,7 +219,7 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [handleError, refreshCurrentView]);
 
   const toggleSelection = useCallback((id: string) => {
     setSelectedItems(prev => {
@@ -253,13 +263,6 @@ export const FileProvider: React.FC<FileProviderProps> = ({ children }) => {
     clearSelection();
   }, [currentFolder, loadFolderContents, loadFileSystem, clearSelection]);
 
-  const refreshCurrentView = useCallback(async () => {
-    if (currentFolder) {
-      await loadFolderContents(currentFolder.id);
-    } else {
-      await loadFileSystem();
-    }
-  }, [currentFolder, loadFolderContents, loadFileSystem]);
 
   const value: FileContextType = {
     // State

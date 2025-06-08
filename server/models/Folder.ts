@@ -5,6 +5,8 @@ interface FolderAttributes {
   id: string;
   name: string;
   parentId: string | null;
+  ownerId: string;
+  isPublic: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -15,6 +17,8 @@ class Folder extends Model<FolderAttributes, FolderCreationAttributes> implement
   public id!: string;
   public name!: string;
   public parentId!: string | null;
+  public ownerId!: string;
+  public isPublic!: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -38,6 +42,18 @@ Folder.init(
         key: 'id',
       },
     },
+    ownerId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'id',
+      },
+    },
+    isPublic: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   },
   {
     sequelize,
@@ -45,16 +61,5 @@ Folder.init(
     tableName: 'folders',
   }
 );
-
-// Self-referencing association for parent-child relationship
-Folder.hasMany(Folder, {
-  as: 'children',
-  foreignKey: 'parentId',
-});
-
-Folder.belongsTo(Folder, {
-  as: 'parent',
-  foreignKey: 'parentId',
-});
 
 export default Folder;
