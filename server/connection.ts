@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Database configuration
-const DB_NAME = process.env.DB_NAME || 'filemanager';
+const DB_NAME = process.env.DB_NAME || 'file_manager';
 const DB_USER = process.env.DB_USER || 'root';
 const DB_PASSWORD = process.env.DB_PASSWORD || '';
 const DB_HOST = process.env.DB_HOST || 'localhost';
