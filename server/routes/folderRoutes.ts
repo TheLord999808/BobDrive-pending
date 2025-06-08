@@ -235,6 +235,8 @@ async function checkIsChildFolder(parentId: string, suspectedChildId: string): P
 
 // Helper function to recursively delete a folder and its contents
 async function deleteRecursive(folderId: string): Promise<void> {
+  const fs = require('fs');
+  
   // Get all subfolders
   const subfolders = await Folder.findAll({ where: { parentFolderId: folderId } });
   
@@ -249,13 +251,18 @@ async function deleteRecursive(folderId: string): Promise<void> {
   // Delete each file
   for (const file of files) {
     // Remove file from filesystem if it exists
-    const fs = require('fs');
     if (fs.existsSync(file.path)) {
       fs.unlinkSync(file.path);
     }
     
     // Remove from database
     await file.destroy();
+  }
+  
+  // Delete the folder itself
+  const folder = await Folder.findByPk(folderId);
+  if (folder) {
+    await folder.destroy();
   }
 }
 

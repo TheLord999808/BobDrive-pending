@@ -2,18 +2,8 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import {
-  getFileSystem,
-  getFolderContents,
-  createFolder,
-  uploadFile,
-  deleteFile,
-  deleteFolder,
-  renameFile,
-  renameFolder,
-  moveFile,
-  moveFolder,
-} from '../controllers/fileController';
+import { v4 as uuidv4 } from 'uuid';
+import { File, Folder, User } from '../models';
 
 const router = express.Router();
 
@@ -42,16 +32,127 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// File and folder endpoints
-router.get('/files', getFileSystem);
-router.get('/folders/:folderId', getFolderContents);
-router.post('/folders', createFolder);
-router.post('/files', upload.single('file'), uploadFile);
-router.delete('/files/:fileId', deleteFile);
-router.delete('/folders/:folderId', deleteFolder);
-router.put('/files/:fileId/rename', renameFile);
-router.put('/folders/:folderId/rename', renameFolder);
-router.put('/files/:fileId/move', moveFile);
-router.put('/folders/:folderId/move', moveFolder);
+// GET /api/v1/files - Get all files for a user
+router.get('/', async (req, res) => {
+  try {
+    const userId = req.query.userId as string;
+    const parentFolderId = req.query.parentFolderId as string | undefined;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    const query: any = { ownerId: userId };
+    if (parentFolderId) {
+      query.parentFolderId = parentFolderId;
+    }
+
+    const files = await File.findAll({
+      where: query,
+      order: [['createdAt', 'DESC']]
+    });
+
+    return res.status(200).json(files);
+  } catch (error) {
+    console.error('Error fetching files:', error);
+    return res.status(500).json({ error: 'Failed to fetch files' });
+  }
+});
+
+// POST /api/v1/files - Upload a file
+router.post('/', upload.single('file'), async (req, res) => {
+  try {
+    const { userId, parentFolderId, isPublic } = req.body;
+    
+    if (!req.file || !userId) {
+      return res.status(400).json({ error: 'File and user ID are required' });
+    }
+
+    // Verify parent folder exists if specified
+    if (parentFolderId) {
+      const parentFolder = await Folder.findByPk(parentFolderId);
+      if (!parentFolder) {
+        return res.status(404).json({ error: 'Parent folder not found' });
+      }
+    }
+
+    const file = await File.create({
+      fileName: req.file.filename,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      path: req.file.path,
+      ownerId: userId,
+      parentFolderId: parentFolderId || null,
+      isPublic: isPublic === 'true' || isPublic === true
+    });
+
+    return res.status(201).json(file);
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    return res.status(500).json({ error: 'Failed to upload file' });
+  }
+});
+
+// DELETE /api/v1/files/:id - Delete a file
+router.delete('/:id', async (req, res) => {
+  try {
+    const fileId = req.params.id;
+    
+    const file = await File.findByPk(fileId);
+    
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    // Remove file from filesystem
+    if (fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+    
+    // Remove from database
+    await file.destroy();
+    
+    return res.status(200).json({ message: 'File deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    return res.status(500).json({ error: 'Failed to delete file' });
+  }
+});
+
+// PATCH /api/v1/files/:id - Update a file
+router.patch('/:id', async (req, res) => {
+  try {
+    const fileId = req.params.id;
+    const { originalName, isPublic, parentFolderId } = req.body;
+    
+    const file = await File.findByPk(fileId);
+    
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    // Verify parent folder exists if specified
+    if (parentFolderId) {
+      const parentFolder = await Folder.findByPk(parentFolderId);
+      if (!parentFolder) {
+        return res.status(404).json({ error: 'Parent folder not found' });
+      }
+    }
+    
+    // Update only allowed fields
+    const updates: Record<string, any> = {};
+    if (originalName !== undefined) updates.originalName = originalName;
+    if (isPublic !== undefined) updates.isPublic = isPublic;
+    if (parentFolderId !== undefined) updates.parentFolderId = parentFolderId || null;
+    
+    await file.update(updates);
+    
+    return res.status(200).json(file);
+  } catch (error) {
+    console.error('Error updating file:', error);
+    return res.status(500).json({ error: 'Failed to update file' });
+  }
+});
 
 export default router;
