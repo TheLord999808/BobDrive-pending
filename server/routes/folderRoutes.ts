@@ -17,9 +17,9 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ error: 'User ID is required' });
     }
 
-    const query: { ownerId: string; parentId?: string | null } = { ownerId: userId };
+    const query: { ownerId: number; parentId?: number | null } = { ownerId: parseInt(userId) };
     if (parentId) {
-      query.parentId = parentId;
+      query.parentId = parseInt(parentId);
     } else {
       // Root level folders (null parentId)
       query.parentId = null;
@@ -40,7 +40,7 @@ router.get('/', async (req, res) => {
 // GET /api/v1/folders/:id - Get a specific folder
 router.get('/:id', async (req, res) => {
   try {
-    const folderId = req.params.id;
+    const folderId = parseInt(req.params.id);
     
     const folder = await Folder.findByPk(folderId);
     
@@ -58,7 +58,7 @@ router.get('/:id', async (req, res) => {
 // GET /api/v1/folders/:id/contents - Get folder contents (subfolders and files)
 router.get('/:id/contents', async (req, res) => {
   try {
-    const folderId = req.params.id;
+    const folderId = parseInt(req.params.id);
     
     const folder = await Folder.findByPk(folderId);
     
@@ -102,8 +102,8 @@ router.post('/', async (req, res) => {
     const existingFolder = await Folder.findOne({
       where: {
         name,
-        ownerId: userId,
-        parentId: parentId || null
+        ownerId: parseInt(userId),
+        parentId: parentId ? parseInt(parentId) : null
       }
     });
     
@@ -113,8 +113,8 @@ router.post('/', async (req, res) => {
     
     const folder = await Folder.create({
       name: name as string,
-      ownerId: userId as string,
-      parentId: (parentId as string) || null,
+      ownerId: parseInt(userId as string),
+      parentId: (parentId as string) ? parseInt(parentId as string) : null,
       isPublic: isPublic === 'true' || isPublic === true
     });
     
@@ -128,7 +128,7 @@ router.post('/', async (req, res) => {
 // PATCH /api/v1/folders/:id - Update a folder
 router.patch('/:id', async (req, res) => {
   try {
-    const folderId = req.params.id;
+    const folderId = parseInt(req.params.id);
     const { name, isPublic, parentId } = req.body;
     
     const folder = await Folder.findByPk(folderId);
@@ -138,13 +138,13 @@ router.patch('/:id', async (req, res) => {
     }
     
     // Prevent circular references
-    if (parentId && parentId === folderId) {
+    if (parentId && parseInt(parentId) === folderId) {
       return res.status(400).json({ error: 'A folder cannot be its own parent' });
     }
     
     // Check if moving to child folder (would create circular reference)
     if (parentId) {
-      const isChildFolder = await checkIsChildFolder(folderId, parentId);
+      const isChildFolder = await checkIsChildFolder(folderId, parseInt(parentId));
       if (isChildFolder) {
         return res.status(400).json({ error: 'Cannot move a folder to its own subfolder' });
       }
@@ -154,7 +154,7 @@ router.patch('/:id', async (req, res) => {
     const updates: Partial<Pick<FolderAttributes, 'name' | 'isPublic' | 'parentId'>> = {};
     if (name !== undefined) updates.name = name;
     if (isPublic !== undefined) updates.isPublic = isPublic;
-    if (parentId !== undefined) updates.parentId = parentId || null;
+    if (parentId !== undefined) updates.parentId = parentId ? parseInt(parentId) : null;
     
     // Apply updates
     await folder.update(updates);
@@ -169,7 +169,7 @@ router.patch('/:id', async (req, res) => {
 // DELETE /api/v1/folders/:id - Delete a folder
 router.delete('/:id', async (req, res) => {
   try {
-    const folderId = req.params.id;
+    const folderId = parseInt(req.params.id);
     const recursive = req.query.recursive === 'true';
     
     const folder = await Folder.findByPk(folderId);
@@ -207,7 +207,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Helper function to check if a folder is a child of another folder
-async function checkIsChildFolder(parentId: string, suspectedChildId: string): Promise<boolean> {
+async function checkIsChildFolder(parentId: number, suspectedChildId: number): Promise<boolean> {
   // Base case
   if (parentId === suspectedChildId) {
     return true;
@@ -235,7 +235,7 @@ async function checkIsChildFolder(parentId: string, suspectedChildId: string): P
 }
 
 // Helper function to recursively delete a folder and its contents
-async function deleteRecursive(folderId: string): Promise<void> {
+async function deleteRecursive(folderId: number): Promise<void> {
   // Get all subfolders
   const subfolders = await Folder.findAll({ where: { parentId: folderId } });
   
