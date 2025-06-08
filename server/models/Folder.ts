@@ -1,22 +1,24 @@
-import { Model, DataTypes} from 'sequelize';
+import { Model, DataTypes, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
 
 interface FolderAttributes {
-  id: string;
+  id: number; // Changé de string à number car c'est un INTEGER autoIncrement
   name: string;
-  parentId: string | null;
-  ownerId: string;
+  parentId: number | null; // Changé de string à number
+  ownerId: number; // Changé de string à number
   isPublic: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-// Suppression de l'interface CreationAttributes redondante
-class Folder extends Model<FolderAttributes, FolderAttributes> implements FolderAttributes {
-  public id!: string;
+// Type pour la création (id optionnel car généré automatiquement)
+type FolderCreationAttributes = Optional<FolderAttributes, 'id' | 'createdAt' | 'updatedAt'>;
+
+class Folder extends Model<FolderAttributes, FolderCreationAttributes> implements FolderAttributes {
+  public id!: number; // Changé de string à number
   public name!: string;
-  public parentId!: string | null;
-  public ownerId!: string;
+  public parentId!: number | null; // Changé de string à number
+  public ownerId!: number; // Changé de string à number
   public isPublic!: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -35,7 +37,7 @@ Folder.init(
       allowNull: false,
     },
     parentId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER, // Changé de UUID à INTEGER
       allowNull: true,
       references: {
         model: 'folders',
@@ -43,7 +45,7 @@ Folder.init(
       },
     },
     ownerId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER, // Changé de UUID à INTEGER
       allowNull: false,
       references: {
         model: 'users',
@@ -74,4 +76,4 @@ Folder.belongsTo(Folder, {
 });
 
 export default Folder;
-export type { FolderAttributes };
+export type { FolderAttributes, FolderCreationAttributes };

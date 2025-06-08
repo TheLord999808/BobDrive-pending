@@ -2,7 +2,7 @@ import { Model, DataTypes, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
 
 interface UserAttributes {
-  id: string;
+  id: number; // Changé de string à number car c'est un INTEGER autoIncrement
   username: string;
   email: string;
   displayName: string;
@@ -12,10 +12,10 @@ interface UserAttributes {
 }
 
 // Type pour la création d'utilisateur (id optionnel car généré automatiquement)
-type UserCreationAttributes = Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt'>;
+type UserCreationAttributes = Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt' | 'isActive'>;
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
-  public id!: string;
+  public id!: number; // Changé de string à number
   public username!: string;
   public email!: string;
   public displayName!: string;
@@ -68,3 +68,4 @@ User.init(
 );
 
 export default User;
+export type { UserAttributes, UserCreationAttributes };

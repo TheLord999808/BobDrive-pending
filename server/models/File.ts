@@ -1,44 +1,34 @@
-import { Model, DataTypes} from 'sequelize';
+import { Model, DataTypes, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
 
 interface FileAttributes {
-  id: string;
+  id: number; // Changé de string à number car c'est un INTEGER autoIncrement
   name: string;
   originalName: string;
   type: string;
   mimetype: string;
   size: number;
   path: string;
-  folderId: string | null;
-  ownerId: string;
+  folderId: number | null; // Changé de string à number
+  ownerId: number; // Changé de string à number
   isPublic: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-// Interface pour la création (propriétés optionnelles)
-interface FileCreationAttributes {
-  name: string;
-  originalName: string;
-  type: string;
-  mimetype: string;
-  size: number;
-  path: string;
-  folderId?: string | null;
-  ownerId: string;
-  isPublic?: boolean;
-}
+// Type pour la création (propriétés optionnelles)
+type FileCreationAttributes = Optional<FileAttributes, 'id' | 'createdAt' | 'updatedAt' | 'isPublic'>;
 
 class File extends Model<FileAttributes, FileCreationAttributes> implements FileAttributes {
-  public id!: string;
+  public id!: number; // Changé de string à number
   public name!: string;
   public originalName!: string;
   public type!: string;
   public mimetype!: string;
   public size!: number;
   public path!: string;
-  public folderId!: string | null;
-  public ownerId!: string;
+  public folderId!: number | null; // Changé de string à number
+  public ownerId!: number; // Changé de string à number
   public isPublic!: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -77,7 +67,7 @@ File.init(
       allowNull: false,
     },
     folderId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER, // Changé de UUID à INTEGER
       allowNull: true,
       references: {
         model: 'folders',
@@ -85,7 +75,7 @@ File.init(
       },
     },
     ownerId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER, // Changé de UUID à INTEGER
       allowNull: false,
       references: {
         model: 'users',
@@ -105,3 +95,4 @@ File.init(
 );
 
 export default File;
+export type { FileAttributes, FileCreationAttributes };
