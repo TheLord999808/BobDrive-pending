@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
-import sequelize from '../connection';
+import { Op } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import { File, Folder } from '../models';
 
@@ -265,7 +265,7 @@ export const renameFolder = async (req: Request, res: Response): Promise<void> =
       where: {
         name: newName,
         parentId: folder.parentId,
-        id: { [sequelize.Op.ne]: folderId },
+        id: { [Op.ne]: folderId },
       },
     });
 

@@ -1,4 +1,5 @@
 import express from 'express';
+import { Op } from 'sequelize';
 import { User } from '../models';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -52,7 +53,7 @@ router.post('/', async (req, res) => {
     // Check if username or email already exists
     const existingUser = await User.findOne({
       where: {
-        [sequelize.Op.or]: [
+        [Op.or]: [
           { username },
           { email }
         ]
@@ -141,4 +142,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-export { router as userRoutes };
+export default router;

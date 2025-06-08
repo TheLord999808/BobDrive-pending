@@ -1,35 +1,29 @@
-import { Model, DataTypes } from 'sequelize';
-import sequelize from '../connection';
-import User from './User';
+import { Model, DataTypes, Optional } from 'sequelize';
+import { sequelize } from '../config/database';
+import Folder from './Folder';
 
 interface FileAttributes {
   id: string;
-  fileName: string;
-  originalName: string;
-  mimeType: string;
+  name: string;
+  type: string;
+  mimetype: string;
   size: number;
   path: string;
-  isPublic: boolean;
-  ownerId: string;
-  parentFolderId?: string | null;
+  folderId: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface FileCreationAttributes extends Omit<FileAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+interface FileCreationAttributes extends Optional<FileAttributes, 'id'> {}
 
 class File extends Model<FileAttributes, FileCreationAttributes> implements FileAttributes {
   public id!: string;
-  public fileName!: string;
-  public originalName!: string;
-  public mimeType!: string;
+  public name!: string;
+  public type!: string;
+  public mimetype!: string;
   public size!: number;
   public path!: string;
-  public isPublic!: boolean;
-  public ownerId!: string;
-  public parentFolderId!: string | null;
-  
-  // Timestamps
+  public folderId!: string | null;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -41,39 +35,27 @@ File.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    fileName: {
-      type: DataTypes.STRING(255),
+    name: {
+      type: DataTypes.STRING,
       allowNull: false,
     },
-    originalName: {
-      type: DataTypes.STRING(255),
+    type: {
+      type: DataTypes.STRING, // e.g., document, image, video, audio, text
       allowNull: false,
     },
-    mimeType: {
-      type: DataTypes.STRING(100),
+    mimetype: {
+      type: DataTypes.STRING,
       allowNull: false,
     },
     size: {
-      type: DataTypes.BIGINT,
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     path: {
-      type: DataTypes.STRING(512),
+      type: DataTypes.STRING,
       allowNull: false,
     },
-    isPublic: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-    },
-    ownerId: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id',
-      },
-    },
-    parentFolderId: {
+    folderId: {
       type: DataTypes.UUID,
       allowNull: true,
       references: {
@@ -84,12 +66,9 @@ File.init(
   },
   {
     sequelize,
+    modelName: 'file',
     tableName: 'files',
-    timestamps: true,
   }
 );
-
-// Define associations
-File.belongsTo(User, { foreignKey: 'ownerId', as: 'owner' });
 
 export default File;

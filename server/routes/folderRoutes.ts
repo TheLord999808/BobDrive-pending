@@ -1,6 +1,6 @@
 import express from 'express';
 import { Folder, File } from '../models';
-import sequelize from '../db/connection';
+import sequelize from '../connection';
 
 // Create router
 const router = express.Router();
@@ -259,4 +259,4 @@ async function deleteRecursive(folderId: string): Promise<void> {
   }
 }
 
-export { router as folderRoutes };
+export default router;

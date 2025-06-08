@@ -1,18 +1,18 @@
-import User from './User';
-import File from './File';
 import Folder from './Folder';
-import sequelize from '../connection';
+import File from './File';
 
 // Define model relationships
-User.hasMany(File, { foreignKey: 'ownerId', as: 'files' });
-User.hasMany(Folder, { foreignKey: 'ownerId', as: 'folders' });
+Folder.hasMany(File, {
+  foreignKey: 'folderId',
+  as: 'files',
+});
 
-File.belongsTo(Folder, { foreignKey: 'parentFolderId', as: 'folder' });
-Folder.hasMany(File, { foreignKey: 'parentFolderId', as: 'files' });
+File.belongsTo(Folder, {
+  foreignKey: 'folderId',
+  as: 'folder',
+});
 
 export {
-  sequelize,
-  User,
+  Folder,
   File,
-  Folder
 };

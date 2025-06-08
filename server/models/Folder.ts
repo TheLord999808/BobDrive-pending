@@ -1,27 +1,20 @@
-import { Model, DataTypes } from 'sequelize';
-import sequelize from '../connection';
-import User from './User';
+import { Model, DataTypes, Optional } from 'sequelize';
+import { sequelize } from '../config/database';
 
 interface FolderAttributes {
   id: string;
   name: string;
-  ownerId: string;
-  parentFolderId?: string | null;
-  isPublic: boolean;
+  parentId: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface FolderCreationAttributes extends Omit<FolderAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+interface FolderCreationAttributes extends Optional<FolderAttributes, 'id'> {}
 
 class Folder extends Model<FolderAttributes, FolderCreationAttributes> implements FolderAttributes {
   public id!: string;
   public name!: string;
-  public ownerId!: string;
-  public parentFolderId!: string | null;
-  public isPublic!: boolean;
-  
-  // Timestamps
+  public parentId!: string | null;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -34,21 +27,10 @@ Folder.init(
       primaryKey: true,
     },
     name: {
-      type: DataTypes.STRING(255),
+      type: DataTypes.STRING,
       allowNull: false,
-      validate: {
-        notEmpty: true,
-      },
     },
-    ownerId: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id',
-      },
-    },
-    parentFolderId: {
+    parentId: {
       type: DataTypes.UUID,
       allowNull: true,
       references: {
@@ -56,21 +38,23 @@ Folder.init(
         key: 'id',
       },
     },
-    isPublic: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-    },
   },
   {
     sequelize,
+    modelName: 'folder',
     tableName: 'folders',
-    timestamps: true,
   }
 );
 
-// Define associations
-Folder.belongsTo(User, { foreignKey: 'ownerId', as: 'owner' });
-Folder.belongsTo(Folder, { foreignKey: 'parentFolderId', as: 'parentFolder' });
-Folder.hasMany(Folder, { foreignKey: 'parentFolderId', as: 'subFolders' });
+// Self-referencing association for parent-child relationship
+Folder.hasMany(Folder, {
+  as: 'children',
+  foreignKey: 'parentId',
+});
+
+Folder.belongsTo(Folder, {
+  as: 'parent',
+  foreignKey: 'parentId',
+});
 
 export default Folder;
