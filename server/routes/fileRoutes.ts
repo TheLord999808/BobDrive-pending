@@ -78,13 +78,13 @@ router.post('/', upload.single('file'), async (req, res) => {
     }
 
     const file = await File.create({
-      fileName: req.file.filename,
+      name: req.file.filename, // Changé de 'fileName' à 'name'
       originalName: req.file.originalname,
-      mimeType: req.file.mimetype,
+      mimetype: req.file.mimetype,
       size: req.file.size,
-      filePath: req.file.path,
+      path: req.file.path, // Changé de 'filePath' à 'path'
       ownerId: userId,
-      parentFolderId: (parentFolderId && parentFolderId !== 'null') ? parentFolderId : null,
+      folderId: (parentFolderId && parentFolderId !== 'null') ? parentFolderId : null,
       isPublic: isPublic === 'true' || isPublic === true
     });
 
@@ -108,8 +108,8 @@ router.delete('/:id', async (req, res) => {
     
     // Remove file from filesystem
     try {
-      if (fs.existsSync(file.filePath)) {
-        fs.unlinkSync(file.filePath);
+      if (fs.existsSync(file.path)) { // Changé de 'file.filePath' à 'file.path'
+        fs.unlinkSync(file.path);
       }
     } catch (fsError) {
       console.warn('Warning: Could not delete file from filesystem:', fsError);

@@ -16,8 +16,20 @@ interface FileAttributes {
   updatedAt?: Date;
 }
 
-// Suppression de l'interface CreationAttributes redondante
-class File extends Model<FileAttributes, FileAttributes> implements FileAttributes {
+// Interface pour la création (propriétés optionnelles)
+interface FileCreationAttributes {
+  name: string;
+  originalName: string;
+  type: string;
+  mimetype: string;
+  size: number;
+  path: string;
+  folderId?: string | null;
+  ownerId: string;
+  isPublic?: boolean;
+}
+
+class File extends Model<FileAttributes, FileCreationAttributes> implements FileAttributes {
   public id!: string;
   public name!: string;
   public originalName!: string;
