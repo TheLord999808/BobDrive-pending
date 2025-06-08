@@ -1,6 +1,7 @@
 import express from 'express';
 import { Folder, File } from '../models';
-import sequelize from '../connection';
+import * as fs from 'fs';
+import type { FolderAttributes } from '../models/Folder';
 
 // Create router
 const router = express.Router();
@@ -10,18 +11,18 @@ router.get('/', async (req, res) => {
   try {
     // Usually would get userId from auth token
     const userId = req.query.userId as string;
-    const parentFolderId = req.query.parentFolderId as string | undefined;
+    const parentId = req.query.parentId as string | undefined;
     
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
     }
 
-    const query: any = { ownerId: userId };
-    if (parentFolderId) {
-      query.parentFolderId = parentFolderId;
+    const query: { ownerId: string; parentId?: string | null } = { ownerId: userId };
+    if (parentId) {
+      query.parentId = parentId;
     } else {
-      // Root level folders (null parentFolderId)
-      query.parentFolderId = null;
+      // Root level folders (null parentId)
+      query.parentId = null;
     }
 
     const folders = await Folder.findAll({
@@ -67,13 +68,13 @@ router.get('/:id/contents', async (req, res) => {
     
     // Get subfolders
     const subfolders = await Folder.findAll({
-      where: { parentFolderId: folderId },
+      where: { parentId: folderId },
       order: [['name', 'ASC']]
     });
     
     // Get files
     const files = await File.findAll({
-      where: { parentFolderId: folderId },
+      where: { folderId: folderId },
       order: [['createdAt', 'DESC']]
     });
     
@@ -91,7 +92,7 @@ router.get('/:id/contents', async (req, res) => {
 // POST /api/v1/folders - Create a new folder
 router.post('/', async (req, res) => {
   try {
-    const { name, userId, parentFolderId, isPublic } = req.body;
+    const { name, userId, parentId, isPublic } = req.body;
     
     if (!name || !userId) {
       return res.status(400).json({ error: 'Folder name and user ID are required' });
@@ -102,7 +103,7 @@ router.post('/', async (req, res) => {
       where: {
         name,
         ownerId: userId,
-        parentFolderId: parentFolderId || null
+        parentId: parentId || null
       }
     });
     
@@ -111,9 +112,9 @@ router.post('/', async (req, res) => {
     }
     
     const folder = await Folder.create({
-      name,
-      ownerId: userId,
-      parentFolderId: parentFolderId || null,
+      name: name as string,
+      ownerId: userId as string,
+      parentId: (parentId as string) || null,
       isPublic: isPublic === 'true' || isPublic === true
     });
     
@@ -128,7 +129,7 @@ router.post('/', async (req, res) => {
 router.patch('/:id', async (req, res) => {
   try {
     const folderId = req.params.id;
-    const { name, isPublic, parentFolderId } = req.body;
+    const { name, isPublic, parentId } = req.body;
     
     const folder = await Folder.findByPk(folderId);
     
@@ -137,23 +138,23 @@ router.patch('/:id', async (req, res) => {
     }
     
     // Prevent circular references
-    if (parentFolderId && parentFolderId === folderId) {
+    if (parentId && parentId === folderId) {
       return res.status(400).json({ error: 'A folder cannot be its own parent' });
     }
     
     // Check if moving to child folder (would create circular reference)
-    if (parentFolderId) {
-      const isChildFolder = await checkIsChildFolder(folderId, parentFolderId);
+    if (parentId) {
+      const isChildFolder = await checkIsChildFolder(folderId, parentId);
       if (isChildFolder) {
         return res.status(400).json({ error: 'Cannot move a folder to its own subfolder' });
       }
     }
     
     // Update only allowed fields
-    const updates: Record<string, any> = {};
+    const updates: Partial<Pick<FolderAttributes, 'name' | 'isPublic' | 'parentId'>> = {};
     if (name !== undefined) updates.name = name;
     if (isPublic !== undefined) updates.isPublic = isPublic;
-    if (parentFolderId !== undefined) updates.parentFolderId = parentFolderId || null;
+    if (parentId !== undefined) updates.parentId = parentId || null;
     
     // Apply updates
     await folder.update(updates);
@@ -178,8 +179,8 @@ router.delete('/:id', async (req, res) => {
     }
     
     // Check if folder has contents
-    const subfolders = await Folder.findAll({ where: { parentFolderId: folderId } });
-    const files = await File.findAll({ where: { parentFolderId: folderId } });
+    const subfolders = await Folder.findAll({ where: { parentId: folderId } });
+    const files = await File.findAll({ where: { folderId: folderId } });
     
     if ((subfolders.length > 0 || files.length > 0) && !recursive) {
       return res.status(400).json({ 
@@ -214,7 +215,7 @@ async function checkIsChildFolder(parentId: string, suspectedChildId: string): P
   
   // Get all direct children of the suspected child
   const childFolders = await Folder.findAll({
-    where: { parentFolderId: suspectedChildId }
+    where: { parentId: suspectedChildId }
   });
   
   // If no children, return false
@@ -235,10 +236,8 @@ async function checkIsChildFolder(parentId: string, suspectedChildId: string): P
 
 // Helper function to recursively delete a folder and its contents
 async function deleteRecursive(folderId: string): Promise<void> {
-  const fs = require('fs');
-  
   // Get all subfolders
-  const subfolders = await Folder.findAll({ where: { parentFolderId: folderId } });
+  const subfolders = await Folder.findAll({ where: { parentId: folderId } });
   
   // Recursively delete each subfolder
   for (const subfolder of subfolders) {
@@ -246,7 +245,7 @@ async function deleteRecursive(folderId: string): Promise<void> {
   }
   
   // Get all files in the folder
-  const files = await File.findAll({ where: { parentFolderId: folderId } });
+  const files = await File.findAll({ where: { folderId: folderId } });
   
   // Delete each file
   for (const file of files) {

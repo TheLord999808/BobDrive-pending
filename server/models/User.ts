@@ -1,4 +1,4 @@
-import { Model, DataTypes} from 'sequelize';
+import { Model, DataTypes, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
 
 interface UserAttributes {
@@ -11,8 +11,10 @@ interface UserAttributes {
   updatedAt?: Date;
 }
 
-// Suppression de l'interface CreationAttributes redondante
-class User extends Model<UserAttributes, UserAttributes> implements UserAttributes {
+// Type pour la création d'utilisateur (id optionnel car généré automatiquement)
+type UserCreationAttributes = Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt'>;
+
+class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: string;
   public username!: string;
   public email!: string;
@@ -27,9 +29,10 @@ class User extends Model<UserAttributes, UserAttributes> implements UserAttribut
 User.init(
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
       primaryKey: true,
+      allowNull: false
     },
     username: {
       type: DataTypes.STRING(50),

@@ -1,7 +1,6 @@
 import express from 'express';
-import { Op } from 'sequelize';
-import { User } from '../models';
-import { v4 as uuidv4 } from 'uuid';
+import { Op, ValidationError, UniqueConstraintError } from 'sequelize';
+import User from '../models/User';
 
 // Create router
 const router = express.Router();
@@ -80,8 +79,21 @@ router.post('/', async (req, res) => {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error creating user:', error);
+    
+    // Gestion d'erreur plus spécifique pour les erreurs de validation Sequelize
+    if (error instanceof ValidationError) {
+      return res.status(400).json({ 
+        error: 'Validation error', 
+        details: error.errors.map((e) => ({ field: e.path, message: e.message }))
+      });
+    }
+    
+    if (error instanceof UniqueConstraintError) {
+      return res.status(409).json({ error: 'Username or email already exists' });
+    }
+    
     return res.status(500).json({ error: 'Failed to create user' });
   }
 });
@@ -99,12 +111,20 @@ router.patch('/:id', async (req, res) => {
     }
     
     // Update only allowed fields
-    const updates: Record<string, any> = {};
+    const updates: Partial<{ displayName: string; isActive: boolean }> = {}; // Type plus précis
     if (displayName !== undefined) updates.displayName = displayName;
     if (isActive !== undefined) updates.isActive = isActive;
     
+    // Vérifier qu'il y a au moins une mise à jour
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+    
     // Apply updates
     await user.update(updates);
+    
+    // Recharger l'utilisateur pour avoir les données à jour
+    await user.reload();
     
     return res.status(200).json({
       id: user.id,
@@ -115,13 +135,22 @@ router.patch('/:id', async (req, res) => {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error updating user:', error);
+    
+    // Gestion d'erreur pour les erreurs de validation
+    if (error instanceof ValidationError) {
+      return res.status(400).json({ 
+        error: 'Validation error', 
+        details: error.errors.map((e) => ({ field: e.path, message: e.message }))
+      });
+    }
+    
     return res.status(500).json({ error: 'Failed to update user' });
   }
 });
 
-// DELETE /api/v1/users/:id - Delete a user
+// DELETE /api/v1/users/:id - Delete a user (soft delete)
 router.delete('/:id', async (req, res) => {
   try {
     const userId = req.params.id;
@@ -132,7 +161,12 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    // Instead of hard delete, we can soft delete by setting isActive to false
+    // Vérifier si l'utilisateur est déjà désactivé
+    if (!user.isActive) {
+      return res.status(400).json({ error: 'User is already deactivated' });
+    }
+    
+    // Soft delete by setting isActive to false
     await user.update({ isActive: false });
     
     return res.status(200).json({ message: 'User deactivated successfully' });

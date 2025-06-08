@@ -1,6 +1,5 @@
 import { sequelize } from '../config/database';
 import { Folder, File, User } from '../models';
-import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import fs from 'fs';
 
@@ -22,7 +21,7 @@ const initializeDatabase = async () => {
     const rootFolder = await Folder.create({
       name: 'My Files',
       ownerId: adminUser.id,
-      parentFolderId: null,
+      parentId: null,
       isPublic: false
     });
 
@@ -30,28 +29,28 @@ const initializeDatabase = async () => {
     const documentsFolder = await Folder.create({
       name: 'Documents',
       ownerId: adminUser.id,
-      parentFolderId: rootFolder.id,
+      parentId: rootFolder.id,
       isPublic: false
     });
 
     const imagesFolder = await Folder.create({
       name: 'Images',
       ownerId: adminUser.id,
-      parentFolderId: rootFolder.id,
+      parentId: rootFolder.id,
       isPublic: true
     });
 
     const videosFolder = await Folder.create({
       name: 'Videos',
       ownerId: adminUser.id,
-      parentFolderId: rootFolder.id,
+      parentId: rootFolder.id,
       isPublic: false
     });
 
     const musicFolder = await Folder.create({
       name: 'Music',
       ownerId: adminUser.id,
-      parentFolderId: rootFolder.id,
+      parentId: rootFolder.id,
       isPublic: false
     });
 
@@ -77,65 +76,71 @@ const initializeDatabase = async () => {
 
     // Create sample files in the root folder
     await File.create({
-      fileName: 'placeholder_notes.txt',
+      name: 'placeholder_notes.txt',
       originalName: 'Notes.txt',
-      mimeType: 'text/plain',
+      mimetype: 'text/plain',
       size: Buffer.byteLength(notesContent, 'utf8'),
       path: notesPath,
       ownerId: adminUser.id,
-      parentFolderId: rootFolder.id,
+      folderId: rootFolder.id,
       isPublic: false
     });
 
     await File.create({
-      fileName: 'placeholder_report.pdf',
+      name: 'placeholder_report.pdf',
       originalName: 'Report.pdf',
-      mimeType: 'application/pdf',
-      size: 1.2 * 1024 * 1024, // 1.2 MB
+      mimetype: 'application/pdf',
+      size: Math.round(1.2 * 1024 * 1024), // 1.2 MB - converti en entier
       path: path.join(storageDir, 'placeholder_report.pdf'),
       ownerId: adminUser.id,
-      parentFolderId: rootFolder.id,
+      folderId: rootFolder.id,
       isPublic: false
     });
 
     // Create sample files in Documents folder
     await File.create({
-      fileName: 'placeholder_proposal.docx',
+      name: 'placeholder_proposal.docx',
       originalName: 'Project Proposal.docx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      mimetype: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       size: 245 * 1024, // 245 KB
       path: path.join(storageDir, 'placeholder_proposal.docx'),
       ownerId: adminUser.id,
-      parentFolderId: documentsFolder.id,
+      folderId: documentsFolder.id,
       isPublic: false
     });
 
     await File.create({
-      fileName: 'placeholder_meeting_notes.txt',
+      name: 'placeholder_meeting_notes.txt',
       originalName: 'Meeting Notes.txt',
-      mimeType: 'text/plain',
+      mimetype: 'text/plain',
       size: Buffer.byteLength(meetingNotesContent, 'utf8'),
       path: meetingNotesPath,
       ownerId: adminUser.id,
-      parentFolderId: documentsFolder.id,
+      folderId: documentsFolder.id,
       isPublic: false
     });
 
     await File.create({
-      fileName: 'placeholder_budget.xlsx',
+      name: 'placeholder_budget.xlsx',
       originalName: 'Budget.xlsx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       size: 154 * 1024, // 154 KB
       path: path.join(storageDir, 'placeholder_budget.xlsx'),
       ownerId: adminUser.id,
-      parentFolderId: documentsFolder.id,
+      folderId: documentsFolder.id,
       isPublic: false
     });
 
     console.log('Database initialized with sample data');
     console.log(`Admin user created with ID: ${adminUser.id}`);
+    console.log(`Root folder created with ID: ${rootFolder.id}`);
+    console.log(`Documents folder created with ID: ${documentsFolder.id}`);
+    console.log(`Images folder created with ID: ${imagesFolder.id}`);
+    console.log(`Videos folder created with ID: ${videosFolder.id}`);
+    console.log(`Music folder created with ID: ${musicFolder.id}`);
   } catch (error) {
     console.error('Error initializing database:', error);
+    throw error; // Re-throw pour permettre un meilleur debugging
   } finally {
     // Close the database connection
     await sequelize.close();
@@ -143,4 +148,4 @@ const initializeDatabase = async () => {
 };
 
 // Run the initialization
-initializeDatabase();
+initializeDatabase().catch(console.error);
