@@ -1,4 +1,4 @@
-import { Model, DataTypes, Optional } from 'sequelize';
+import { Model, DataTypes} from 'sequelize';
 import { sequelize } from '../config/database';
 
 interface FileAttributes {
@@ -16,9 +16,8 @@ interface FileAttributes {
   updatedAt?: Date;
 }
 
-interface FileCreationAttributes extends Optional<FileAttributes, 'id'> {}
-
-class File extends Model<FileAttributes, FileCreationAttributes> implements FileAttributes {
+// Suppression de l'interface CreationAttributes redondante
+class File extends Model<FileAttributes, FileAttributes> implements FileAttributes {
   public id!: string;
   public name!: string;
   public originalName!: string;

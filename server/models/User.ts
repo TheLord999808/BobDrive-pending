@@ -1,4 +1,4 @@
-import { Model, DataTypes, Optional } from 'sequelize';
+import { Model, DataTypes} from 'sequelize';
 import { sequelize } from '../config/database';
 
 interface UserAttributes {
@@ -11,9 +11,8 @@ interface UserAttributes {
   updatedAt?: Date;
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes, 'id'> {}
-
-class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
+// Suppression de l'interface CreationAttributes redondante
+class User extends Model<UserAttributes, UserAttributes> implements UserAttributes {
   public id!: string;
   public username!: string;
   public email!: string;

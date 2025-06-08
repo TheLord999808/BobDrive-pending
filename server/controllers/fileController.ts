@@ -81,58 +81,68 @@ export const getFolderContents = async (req: Request, res: Response): Promise<vo
 };
 
 export const createFolder = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { name, parentId } = req.body;
-
-    if (!name) {
-      res.status(400).json({ error: 'Folder name is required' });
-      return;
-    }
-
-    // Check if folder with the same name exists in the same location
-    const existingFolder = await Folder.findOne({
-      where: {
+    try {
+      const { name, parentId, ownerId } = req.body; // Ajouter ownerId depuis req.body
+  
+      if (!name) {
+        res.status(400).json({ error: 'Folder name is required' });
+        return;
+      }
+  
+      if (!ownerId) {
+        res.status(400).json({ error: 'Owner ID is required' });
+        return;
+      }
+  
+      // Check if folder with the same name exists in the same location
+      const existingFolder = await Folder.findOne({
+        where: {
+          name,
+          parentId: parentId || null,
+        },
+      });
+  
+      if (existingFolder) {
+        res.status(409).json({ error: 'A folder with this name already exists in this location' });
+        return;
+      }
+  
+      const folder = await Folder.create({
         name,
         parentId: parentId || null,
-      },
-    });
-
-    if (existingFolder) {
-      res.status(409).json({ error: 'A folder with this name already exists in this location' });
-      return;
-    }
-
-    const folder = await Folder.create({
-        name,
-        parentId: parentId || null,
-        ownerId: ownerId, // À ajouter depuis req.body ou auth
+        ownerId: ownerId, // Maintenant défini
         isPublic: false,
-    });
-      
-    res.status(201).json(folder);
-  } catch (error) {
-    console.error('Error creating folder:', error);
-    res.status(500).json({ error: 'Failed to create folder' });
-  }
-};
-
-export const uploadFile = async (req: Request, res: Response): Promise<void> => {
-  try {
-    if (!req.file) {
-      res.status(400).json({ error: 'No file uploaded' });
-      return;
+      });
+        
+      res.status(201).json(folder);
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      res.status(500).json({ error: 'Failed to create folder' });
     }
+  };
 
-    const { originalname, mimetype, size, filename } = req.file;
-    const { folderId } = req.body;
-
-    // Generate a unique filename
-    const fileExtension = path.extname(originalname);
-    const fileNameWithoutExt = path.basename(originalname, fileExtension);
-    const uniqueFileName = `${fileNameWithoutExt}-${uuidv4()}${fileExtension}`;
-    
-    // Store file info in database
-    const fileRecord = await File.create({
+  export const uploadFile = async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.file) {
+        res.status(400).json({ error: 'No file uploaded' });
+        return;
+      }
+  
+      const { originalname, mimetype, size, filename } = req.file;
+      const { folderId, ownerId } = req.body; // Ajouter ownerId depuis req.body
+  
+      if (!ownerId) {
+        res.status(400).json({ error: 'Owner ID is required' });
+        return;
+      }
+  
+      // Generate a unique filename
+      const fileExtension = path.extname(originalname);
+      const fileNameWithoutExt = path.basename(originalname, fileExtension);
+      const uniqueFileName = `${fileNameWithoutExt}-${uuidv4()}${fileExtension}`;
+      
+      // Store file info in database
+      const fileRecord = await File.create({
         name: originalname,
         originalName: originalname,
         type: getFileType(mimetype),
@@ -140,31 +150,31 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
         size,
         path: `/storage/${uniqueFileName}`,
         folderId: folderId || null,
-        ownerId: ownerId, // À ajouter depuis req.body ou auth
+        ownerId: ownerId, // Maintenant défini
         isPublic: false,
       });
-
-    // Move the file to the storage directory with the unique name
-    const oldPath = path.join(__dirname, '../../uploads', filename);
-    const newPath = path.join(__dirname, '../../storage', uniqueFileName);
-    
-    fs.rename(oldPath, newPath, (err) => {
-      if (err) {
-        console.error('Error moving file:', err);
-        res.status(500).json({ error: 'Failed to move uploaded file' });
-        return;
-      }
+  
+      // Move the file to the storage directory with the unique name
+      const oldPath = path.join(__dirname, '../../uploads', filename);
+      const newPath = path.join(__dirname, '../../storage', uniqueFileName);
       
-      res.status(201).json({
-        ...fileRecord.toJSON(),
-        size: formatFileSize(size),
+      fs.rename(oldPath, newPath, (err) => {
+        if (err) {
+          console.error('Error moving file:', err);
+          res.status(500).json({ error: 'Failed to move uploaded file' });
+          return;
+        }
+        
+        res.status(201).json({
+          ...fileRecord.toJSON(),
+          size: formatFileSize(size),
+        });
       });
-    });
-  } catch (error) {
-    console.error('Error uploading file:', error);
-    res.status(500).json({ error: 'Failed to upload file' });
-  }
-};
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      res.status(500).json({ error: 'Failed to upload file' });
+    }
+  };
 
 export const deleteFile = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -320,46 +330,48 @@ export const moveFile = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const moveFolder = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { folderId } = req.params;
-    const { targetFolderId } = req.body;
-
-    if (folderId === targetFolderId) {
-      res.status(400).json({ error: 'Cannot move folder into itself' });
-      return;
-    }
-
-    const folder = await Folder.findByPk(folderId);
-    if (!folder) {
-      res.status(404).json({ error: 'Folder not found' });
-      return;
-    }
-
-    // If targetFolderId is provided, check if the target folder exists
-    if (targetFolderId) {
-      const targetFolder = await Folder.findByPk(targetFolderId);
-      if (!targetFolder) {
-        res.status(404).json({ error: 'Target folder not found' });
+    try {
+      const { folderId } = req.params;
+      const { targetFolderId } = req.body;
+  
+      if (folderId === targetFolderId) {
+        res.status(400).json({ error: 'Cannot move folder into itself' });
         return;
       }
-
-      // Check if target folder is a descendant of the folder being moved
-      let currentFolder = targetFolder;
-      while (currentFolder.parentId) {
-        if (currentFolder.parentId === folderId) {
-          res.status(400).json({ error: 'Cannot move a folder into its own descendant' });
+  
+      const folder = await Folder.findByPk(folderId);
+      if (!folder) {
+        res.status(404).json({ error: 'Folder not found' });
+        return;
+      }
+  
+      // If targetFolderId is provided, check if the target folder exists
+      if (targetFolderId) {
+        const targetFolder = await Folder.findByPk(targetFolderId);
+        if (!targetFolder) {
+          res.status(404).json({ error: 'Target folder not found' });
           return;
         }
-        currentFolder = await Folder.findByPk(currentFolder.parentId);
+  
+        // Check if target folder is a descendant of the folder being moved
+        let currentFolder = targetFolder;
+        while (currentFolder.parentId) {
+          if (currentFolder.parentId === folderId) {
+            res.status(400).json({ error: 'Cannot move a folder into its own descendant' });
+            return;
+          }
+          const parentFolder = await Folder.findByPk(currentFolder.parentId);
+          if (!parentFolder) break; // Protection contre les références nulles
+          currentFolder = parentFolder;
+        }
       }
+  
+      folder.parentId = targetFolderId || null;
+      await folder.save();
+  
+      res.status(200).json(folder);
+    } catch (error) {
+      console.error('Error moving folder:', error);
+      res.status(500).json({ error: 'Failed to move folder' });
     }
-
-    folder.parentId = targetFolderId || null;
-    await folder.save();
-
-    res.status(200).json(folder);
-  } catch (error) {
-    console.error('Error moving folder:', error);
-    res.status(500).json({ error: 'Failed to move folder' });
-  }
-};
+  };

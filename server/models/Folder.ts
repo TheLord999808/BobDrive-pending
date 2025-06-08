@@ -1,4 +1,4 @@
-import { Model, DataTypes, Optional } from 'sequelize';
+import { Model, DataTypes} from 'sequelize';
 import { sequelize } from '../config/database';
 
 interface FolderAttributes {
@@ -11,9 +11,8 @@ interface FolderAttributes {
   updatedAt?: Date;
 }
 
-interface FolderCreationAttributes extends Optional<FolderAttributes, 'id'> {}
-
-class Folder extends Model<FolderAttributes, FolderCreationAttributes> implements FolderAttributes {
+// Suppression de l'interface CreationAttributes redondante
+class Folder extends Model<FolderAttributes, FolderAttributes> implements FolderAttributes {
   public id!: string;
   public name!: string;
   public parentId!: string | null;
