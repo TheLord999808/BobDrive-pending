@@ -24,6 +24,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
+// Interface pour les propriétés d'input avec webkitdirectory
+interface InputPropsWithWebkit extends React.InputHTMLAttributes<HTMLInputElement> {
+  webkitdirectory?: string;
+}
+
 interface FileItem {
   name: string
   type: 'folder' | 'document' | 'image' | 'video' | 'audio' | 'text' | 'file'
@@ -358,11 +363,13 @@ export default function RealFileManager() {
             className="hidden"
           />
           <input
-            type="file"
-            ref={folderInputRef}
-            onChange={handleFolderUpload}
-            webkitdirectory=""
-            className="hidden"
+            {...({
+              type: "file",
+              ref: folderInputRef,
+              onChange: handleFolderUpload,
+              webkitdirectory: "",
+              className: "hidden"
+            } as InputPropsWithWebkit)}
           />
           <Button 
             variant="outline" 
