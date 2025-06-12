@@ -3,9 +3,8 @@ version: '3.8'
 services:
   # Application Next.js - Gestionnaire de fichiers
   file-manager:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: node:18-alpine
+    working_dir: /app
     container_name: file-manager-app
     restart: unless-stopped
     ports:
