@@ -9,10 +9,10 @@ services:
     container_name: file-manager-app
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "9000:3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_APP_URL=http://your-vps-ip:3000
+      - NEXT_PUBLIC_APP_URL=http://54.36.101.158:9000
       - PORT=3000
     volumes:
       # Volume pour les fichiers uploadés (persistance)
@@ -30,27 +30,27 @@ services:
       retries: 3
       start_period: 40s
 
-  # Base de données PostgreSQL (pour stocker les métadonnées des fichiers)
-  postgres:
-    image: postgres:15-alpine
+  # Base de données MySQL (pour stocker les métadonnées des fichiers)
+  mysql:
+    image: mysql:8.0
     container_name: file-manager-db
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=filemanager
-      - POSTGRES_USER=filemanager_user
-      - POSTGRES_PASSWORD=your_secure_password_here
-      - PGDATA=/var/lib/postgresql/data/pgdata
+      - MYSQL_DATABASE=filemanager
+      - MYSQL_USER=filemanager_user
+      - MYSQL_PASSWORD=your_secure_password_here
+      - MYSQL_ROOT_PASSWORD=your_root_password_here
     volumes:
       # Volume persistant pour la base de données
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
       # Script d'initialisation (optionnel)
       - ./init-db:/docker-entrypoint-initdb.d
     ports:
-      - "5432:5432"
+      - "3306:3306"
     networks:
       - file-manager-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U filemanager_user -d filemanager"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "filemanager_user", "-pyour_secure_password_here"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -100,7 +100,7 @@ services:
     networks:
       - file-manager-network
     environment:
-      - NGINX_HOST=your-domain.com
+      - NGINX_HOST=54.36.101.158
       - NGINX_PORT=80
 
   # Service de backup automatique
@@ -109,25 +109,25 @@ services:
     container_name: file-manager-backup
     restart: unless-stopped
     volumes:
-      - postgres_data:/backup/db:ro
+      - mysql_data:/backup/db:ro
       - ./uploads:/backup/uploads:ro
       - ./backups:/backups
     environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_DB=filemanager
-      - POSTGRES_USER=filemanager_user
-      - POSTGRES_PASSWORD=your_secure_password_here
+      - MYSQL_HOST=mysql
+      - MYSQL_DATABASE=filemanager
+      - MYSQL_USER=filemanager_user
+      - MYSQL_PASSWORD=your_secure_password_here
       - BACKUP_SCHEDULE=0 2 * * *  # Tous les jours à 2h du matin
     networks:
       - file-manager-network
     command: |
       sh -c '
-        apk add --no-cache postgresql-client dcron
-        echo "$$BACKUP_SCHEDULE /scripts/backup.sh" | crontab -
+        apk add --no-cache mysql-client dcron
+        echo "$BACKUP_SCHEDULE /scripts/backup.sh" | crontab -
         crond -f
       '
     depends_on:
-      - postgres
+      - mysql
 
   # Monitoring avec Watchtower (mise à jour automatique des containers)
   watchtower:
@@ -153,12 +153,12 @@ networks:
 
 # Volumes persistants
 volumes:
-  postgres_data:
+  mysql_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /var/lib/docker/volumes/file-manager/postgres
+      device: /var/lib/docker/volumes/file-manager/mysql
   
   redis_data:
     driver: local
